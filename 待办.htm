@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>待办提醒</title>
+        <link href="http://libs.baidu.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    
+    <body>
+        <div class="jumbotron">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <h1>待办提醒
+                            <small>
+                                <span class="label label-default">0</span>
+                            </small>
+                        </h1>
+                        <ul class="list-group"></ul>
+                        <button class="btn btn-primary" aria-label="Left Aligh">
+                            <span class="glyphicon glyphicon-send"></span>&nbsp;通知测试</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+        <script src="http://libs.baidu.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+        <script>
+            var _canNotify = false; //是否能够发送桌面通知
+            var _keyword = "业务一部";//"需求设计"; //要提醒的关键词
+    
+            function loaded() {
+                //判断是否能发送桌面，并把结果保存到_canNotify中。
+                if (window.Notification) {
+                    if (Notification.permission !== 'granted') {
+                        Notification.requestPermission(function(status) {
+                            if (Notification.permission !== status) {
+                                Notification.permission = status;
+                            }
+                        });
+                    }
+                    if (Notification.permission === 'granted') {
+                        _canNotify = true;
+                    }
+                }
+                //下载
+                update();
+            }
+    
+            //通知测试
+            function testNotify() {
+                if(_canNotify){
+                    var n = new Notification("Hi!", { body: "看起来通知成功显示出来了！"});
+                }
+                else{
+                    alert("无法显示通知，只能弹出提示！");
+                }
+            }
+    
+            //通知
+            function shownotify(title, body) {
+                if(_canNotify){
+                    var n = new Notification(title, { body: body });
+                }
+                else{
+                    alert(body);
+                }
+            }
+            
+            //获取待办
+            function update(){
+                var _data =  "{\"BaseOUGuid\": \"-1\",\"UserGuid\": \"8623cf12-b066-4dab-9d33-0a89e331a1d0\"}";
+                var _url = "http://172.18.18.18/hftpframe/ZHManageMis_HFZTB/MainPages/TP_Main_OA/TP_Main_OA.aspx/GetMissionContent";
+                
+                $(".list-group").html("");                
+                $.ajax({ type: "post", data: _data, contentType: "application/json;utf-8", url: _url, 
+				success: function (data) {
+					var ret = data.d;
+                    var arr = new Array();
+                    $(ret).find("li").each(function(i){
+                        var txt = $(this).find("div").eq(1).text();
+                        arr[i]=txt;
+                    });
+                    $(".label").text(arr.length);
+					if (arr.length===0) {
+                        $(".list-group").html("<li class='list-group-item disabled'>没有待办</li>");
+					}
+					else{
+                        $(arr).each(function(i){
+                            var tmp = arr[i];
+                            //通知
+                            if (tmp.indexOf(_keyword)>=0){
+                                var title = tmp.slice(tmp.indexOf("【")+1,tmp.indexOf("】"));
+                                var msg = tmp.slice(tmp.indexOf("】")+1);
+                                shownotify(title,msg);
+                            }
+                            //显示到列表
+                            var item ="<li class='list-group-item'>"+tmp+"</li>";
+                            $(".list-group").append(item);
+                        });
+                    }
+			    },
+            });
+        }
+    
+        //注册按钮事件
+        //load
+        window.addEventListener('load', loaded);
+        //通知测试
+        document.getElementsByTagName('button')[0].addEventListener("click", testNotify);
+        
+        //定时刷新
+        window.setInterval(update, 120000);
+        </script>
+    </body>
+
+</html>
